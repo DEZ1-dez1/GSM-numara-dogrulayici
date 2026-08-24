@@ -6,8 +6,6 @@
 
 Türkiye'deki tüm GSM operatörlerinin (Turkcell, Vodafone, Türk Telekom, Netgsm vb.) ve sabit hatların formatını doğrulayan, numaranın ilk tahsis edildiği orijinal operatör bloğunu anlık olarak tespit eden açık kaynaklı web uygulaması.
 
-🔗 **[Canlı Demoyu Deneyin](https://KULLANICI_ADI.github.io/REPO_ADI/)**
-
 ---
 
 ## 📌 Bu Araç Ne İşe Yarar?
