@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Telefon Numarası</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      margin: 0;
+    }
+    .phone-form {
+      background: #ffffff;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      width: 100%;
+      max-width: 380px;
+    }
+    .phone-form h2 {
+      margin-bottom: 20px;
+      font-size: 20px;
+      color: #333;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      color: #666;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      box-sizing: border-box;
+      font-size: 15px;
+      letter-spacing: 1px;
+    }
+    .operator-badge {
+      font-size: 12px;
+      font-weight: bold;
+      color: #007bff;
+      margin-top: 5px;
+      display: block;
+      min-height: 18px;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      background-color: #28a745;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    .result {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 14px;
+      display: none;
+      text-align: center;
+    }
+    .result.success {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    .result.error {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone-form">
+  <h2>Telefon Numarası Doğrulama</h2>
+  <form id="phoneForm">
+    <div class="form-group">
+      <label for="phoneNumber">Telefon Numarası</label>
+      <input type="text" id="phoneNumber" placeholder="05XX XXX XX XX" maxlength="15">
+      <span id="operatorDisplay" class="operator-badge"></span>
+    </div>
+
+    <button type="submit">Numarayı Doğrula</button>
+  </form>
+
+  <div id="resultMessage" class="result"></div>
+</div>
+
+<script>
+  // Türkiye GSM Operatör Blokları (Kök Tahsis Listesi)
+  function getOperator(phone) {
+    const digits = phone.replace(/\D/g, '');
+    
+    // Numarayı 5XX olacak şekilde ayarla
+    let prefix = '';
+    if (digits.startsWith('905') && digits.length === 12) {
+      prefix = digits.substring(2, 5);
+    } else if (digits.startsWith('05') && digits.length === 11) {
+      prefix = digits.substring(1, 4);
+    } else if (digits.startsWith('5') && digits.length === 10) {
+      prefix = digits.substring(0, 3);
+    } else {
+      return null;
+    }
+
+    const p = parseInt(prefix, 10);
+
+    // Turkcell Blokları
+    if ([530, 531, 532, 533, 534, 535, 536, 537, 538, 539, 561].includes(p)) {
+      return { name: 'Turkcell', type: 'GSM' };
+    }
+
+    // Vodafone Blokları
+    if ([540, 541, 542, 543, 544, 545, 546, 547, 548, 549].includes(p)) {
+      return { name: 'Vodafone', type: 'GSM' };
+    }
+
+    // Türk Telekom (Avea) Blokları
+    if ([501, 505, 506, 507, 551, 552, 553, 554, 555, 559].includes(p)) {
+      return { name: 'Türk Telekom', type: 'GSM' };
+    }
+
+    // KKTC Operatörleri
+    if ([5338, 5488].includes(parseInt(digits.substring(1, 5), 10))) {
+      return { name: 'KKTCELL / KKTC Telsim', type: 'KKTC GSM' };
+    }
+
+    // Netgsm / STH Sanal Operatörler
+    if ([510, 516].includes(p)) {
+      return { name: 'Netgsm / Sanal Operatör (STH)', type: 'Sanal Operatör' };
+    }
+
+    return { name: 'Bilinmeyen / Tanımsız Blok', type: 'Bilinmiyor' };
+  }
+
+  // Telefon Numarası Formatlama (05XX XXX XX XX)
+  document.getElementById('phoneNumber').addEventListener('input', function (e) {
+    let value = e.target.value.replace(/\D/g, '');
+
+    // Başında 0 yoksa otomatik ekle
+    if (value.length > 0 && !value.startsWith('0')) {
+      value = '0' + value;
+    }
+
+    // Maksimum 11 hane (05XXXXXXXXX)
+    if (value.length > 11) value = value.substring(0, 11);
+
+    // Görsel Formatlama
+    let formatted = value;
+    if (value.length > 1) {
+      formatted = value.substring(0, 4);
+      if (value.length > 4) formatted += ' ' + value.substring(4, 7);
+      if (value.length > 7) formatted += ' ' + value.substring(7, 9);
+      if (value.length > 9) formatted += ' ' + value.substring(9, 11);
+    }
+
+    e.target.value = formatted;
+
+    // Operatör Anlık Tespiti
+    const operatorInfo = getOperator(value);
+    const displaySpan = document.getElementById('operatorDisplay');
+
+    if (operatorInfo && value.length >= 4) {
+      displaySpan.innerText = `Orijinal Blok: ${operatorInfo.name} (${operatorInfo.type})`;
+    } else {
+      displaySpan.innerText = '';
+    }
+  });
+
+  // Form Doğrulama
+  document.getElementById('phoneForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+
+    const rawValue = document.getElementById('phoneNumber').value.replace(/\D/g, '');
+    const resultDiv = document.getElementById('resultMessage');
+    const operatorInfo = getOperator(rawValue);
+
+    resultDiv.style.display = 'block';
+
+    // Geçerlilik Şartları: 11 Haneli Olmalı, 05 ile Başlamalı
+    if (rawValue.length !== 11 || !rawValue.startsWith('05')) {
+      resultDiv.className = 'result error';
+      resultDiv.innerText = 'Geçersiz telefon numarası! (05XX XXX XX XX formatında olmalıdır)';
+    } else if (!operatorInfo || operatorInfo.name.includes('Bilinmeyen')) {
+      resultDiv.className = 'result error';
+      resultDiv.innerText = 'Numara biçimi doğru ancak bilinen bir BTK GSM bloğuna ait değil!';
+    } else {
+      resultDiv.className = 'result success';
+      resultDiv.innerText = `Numara Geçerli!\nİlk Tahsis Edilen Operatör: ${operatorInfo.name}\n(Not: Numara taşınmış olabilir)`;
+    }
+  });
+</script>
+
+</body>
+  </html>
+  
